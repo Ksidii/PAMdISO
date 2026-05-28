@@ -1,56 +1,24 @@
-# Welcome to your Expo app 👋
+# Jakość powietrza w miejscu użytkownika
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Cel aplikacji
+Aplikacja mobilna stworzona w celu uświadamiania użytkownika o aktualnym stanie powietrza w jego najbliższym otoczeniu. Głównym zadaniem aplikacji jest pobranie bieżących współrzędnych geograficznych urządzenia, odpytanie zewnętrznego API pogodowego, a następnie czytelna prezentacja zanieczyszczeń pyłami zawieszonymi (PM2.5 oraz PM10). Dodatkowo, w ramach rozszerzenia, aplikacja pozwala na szybkie porównanie lokalnego powietrza ze wskaźnikami dla wybranego dużego miasta (np. Warszawy).
 
-## Get started
+## Wykorzystane dane z urządzenia
+Aplikacja wykorzystuje **moduł GPS** urządzenia do pobierania bieżącej lokalizacji użytkownika (długość i szerokość geograficzna). Zgoda na dostęp do lokalizacji jest wymagana do poprawnego działania głównych funkcji aplikacji. Dane te są wykorzystywane wyłącznie w locie do konstruowania zapytań do API pogodowego i nie są nigdzie trwale zapisywane.
 
-1. Install dependencies
+## Wykorzystane biblioteki i API
+* **React Native / Expo** - główny framework oraz środowisko uruchomieniowe (SDK 52+).
+* **expo-location** - biblioteka z ekosystemu Expo służąca do asynchronicznego żądania uprawnień oraz odczytu współrzędnych z modułu GPS.
+* **Open-Meteo Air Quality API** (`https://open-meteo.com/en/docs/air-quality-api`) - darmowe, publiczne API niewymagające klucza autoryzacyjnego, z którego pobierane są surowe dane o jakości powietrza na podstawie przekazanych współrzędnych.
 
-   ```bash
-   npm install
-   ```
+## Przepływ danych w aplikacji
+1. **Inicjalizacja i Uprawnienia:** Po uruchomieniu aplikacji wyzwalany jest hook `useEffect`, który wywołuje metodę żądającą od użytkownika uprawnień do lokalizacji Foreground.
+2. **Pobranie Współrzędnych:** W przypadku zgody, pobierane są aktualne współrzędne urządzenia. W przypadku braku zgody aplikacja zatrzymuje przepływ i wyświetla dedykowany komunikat błędu.
+3. **Pobieranie Danych (Fetch):** Współrzędne są przekazywane jako parametry GET do endpointu Open-Meteo. Równolegle (za pomocą `Promise.all`) wykonywane jest drugie zapytanie dla stałych współrzędnych miasta porównawczego.
+4. **Przetwarzanie i Renderowanie:** Otrzymane dane w formacie JSON są parsowane, zapisywane w stanie komponentu (React `useState`) i renderowane na ekranie w postaci kart.
+5. **Odświeżanie:** Użytkownik może wywołać ponowny przepływ (od punktu 2) korzystając z gestu "Pull-to-refresh" obsługiwanego przez `RefreshControl`.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Lista ograniczeń i problemów napotkanych podczas realizacji
+* **Brak danych dla specyficznych lokalizacji:** W przypadku bardzo małych miejscowości lub głębokich lasów, API Open-Meteo może zwrócić wartość `null` dla wskaźników PM, co wymagało dodania dodatkowej obsługi błędów ("Brak danych dla tej lokalizacji").
+* **Opóźnienia GPS wewnątrz budynków:** Moduł `getCurrentPositionAsync` może działać z zauważalnym opóźnieniem w zamkniętych pomieszczeniach. Aplikacja w tym czasie wyświetla globalny `ActivityIndicator`.
+* **Uproszczona walidacja norm:** Standardy WHO dla pyłów PM2.5 i PM10 są dynamiczne i zależą od czasu ekspozycji (normy dobowe vs roczne). W aplikacji przyjęto statyczne, uproszczone progi ostrzegawcze (25 i 40 µg/m³) na potrzeby demonstracji zmiany koloru w UI.
